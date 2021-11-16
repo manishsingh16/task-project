@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use \Illuminate\Validation\Validator;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -17,36 +18,33 @@ class UserController extends Controller
         $this->validate($request, [
           'name' => 'required',
           'email' => 'required',
+          'password'=> 'required',
           
       ]);
-      $request->all();
-      
       $name = $request->name;
-      $email = $request->email;
-     
-     $user = new User;
-     
+      $email = $request->email; 
+      $password = $request->password;
+      $hashPassword = Hash::make($password);
+      $user = new User;
       $check = $user->where('email',$email)->exists();
       if($check)
     {
-      echo "this customer already exists in database";
+      return "User already exists";
     }
     else
     {
         $uswr = new User;
         $user->email = $email;
         $user->name = $name;
+        $user->password = $hashPassword;
         $result = $user->save();
       if(!$result)
       {
-        echo "inserted";
-        echo  "<br>";
-        echo "$result";
+        return "User register successfully ";
       }
 else 
 {
-echo "$result";
-echo "ok";
+  return "User register successfully ";
 }
       }
 
@@ -57,6 +55,7 @@ echo "ok";
      {
         $validator = Validator($request->all(), [
                'email' => 'required',
+               'password'=>'required',
                
            ]);
   
@@ -67,25 +66,26 @@ echo "ok";
                  'message' => $validator->messages()
                 ], 400);
            } 
+           $password  = $request->password;
            $credentials = ['email' => $request->email];
-           $users = User::where($credentials)->exists();
+           $users = User::where($credentials)->first();
+           $fetchedPass = $users->password;
+           $email = $users->email;
+           $name = $users->name;
+           $passCheck = Hash::check($password, $fetchedPass);
          
-           if(!$users){
+           if(!$passCheck){
   
-              return response()->json([
-                'status'=>false,
-                'message' => "We cant find email",
-            ], 200);      
+           return "Incorrect user Email or password.";
            }
+
            else
            {
                
-            $request->session()->put('email',$request->email);
-            if($request->session()->has('email'))
-            echo $request->session()->get('email');
-            return view('profile');
+             $request->session()->put('email', $email);
+            return view('profile', ['email'=>$email, 'name'=>$name]);
             
-                  }
+           }
   
           }
   
@@ -112,13 +112,16 @@ echo "ok";
              $wallet = $userFetched->wallet;
              
              if($quantity > $wallet){
-                return ('/sorry  not enough amount');
+                return ('Sorry  not enough amount');
             }
             $check = DB::table('users')->where('email', $email)->update([
                 'wallet'=> $wallet - $quantity
             ]);
             if($check){
-                return (' You have bought '. $quantity .' cookies');
+              $userFetched = $user->where('email', $email)->first();
+              $wallet = $userFetched->wallet;
+               
+                return('Success, you have bought ' . $quantity . ' cookies!');
               
             }else{
                 return view('Unable to purchase.');
