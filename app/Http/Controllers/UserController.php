@@ -31,25 +31,16 @@ class UserController extends Controller
     {
       return "User already exists";
     }
-    else
     {
-        $uswr = new User;
+        $user = new User;
         $user->email = $email;
         $user->name = $name;
         $user->password = $hashPassword;
         $result = $user->save();
-      if(!$result)
-      {
+    }
         return "User register successfully ";
-      }
-else 
-{
-  return "User register successfully ";
-}
-      }
-
-     }
-      
+    
+    }
 
      public function login(Request $request)
      {
@@ -69,6 +60,10 @@ else
            $password  = $request->password;
            $credentials = ['email' => $request->email];
            $users = User::where($credentials)->first();
+           if(!$users)
+           {
+            return "Please Register  User Don't exists.";
+           }
            $fetchedPass = $users->password;
            $email = $users->email;
            $name = $users->name;
@@ -111,22 +106,21 @@ else
              $userFetched = $user->where('email', $email)->first(); 
              $wallet = $userFetched->wallet;
              
-             if($quantity > $wallet){
-                return ('Sorry  not enough amount');
-            }
+             if($quantity > $wallet)
+             {
+                return ('Sorry  not enough amount your current wallet amount '.$wallet.'');
+             }
             $check = DB::table('users')->where('email', $email)->update([
                 'wallet'=> $wallet - $quantity
             ]);
-            if($check){
+            if($check)
+            {
               $userFetched = $user->where('email', $email)->first();
               $wallet = $userFetched->wallet;
                
                 return('Success, you have bought ' . $quantity . ' cookies!');
               
-            }else{
-                return view('Unable to purchase.');
-            }
-         
+           }
       
    }
 
